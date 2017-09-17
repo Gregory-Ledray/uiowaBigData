@@ -1,10 +1,12 @@
+from __future__ import print_function
 import receiveSQSMessage
 import sendSQSMessage
 import numpy as np
-import cv2
+import opencv3 as cv2
 import scipy.spatial.distance as distance
 from xlrd import open_workbook
 import os
+
 
 def skinToneFind(selfie):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -119,7 +121,7 @@ def predict(attributes):
 #I assume the input message is of format key=value.key=value.key=value
 if __name__ == '__main__':
     inQ = receiveSQSMessage.receiveLoop()
-    print inQ
+    print (inQ)
     info = inQ.split('.')
     inData={}
     for entry in info:
@@ -133,7 +135,7 @@ if __name__ == '__main__':
 
     #print out the attributes we've found by processing the input message
     for i in attributes:
-        print attributes
+        print (attributes)
 
     #make a prediction based on the input attributes
     (name, website) = predict(attributes, inData['acne'], inData['active'])
