@@ -7,7 +7,7 @@ import scipy.spatial.distance as distance
 from xlrd import open_workbook
 import os, boto3, cv2, urllib.request
 import requests
-
+import subprocess
 def skinToneFind(selfie):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
@@ -38,7 +38,10 @@ def skinToneFind(selfie):
             cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
     xmed = (xmin+xmax)//2
     ymed = (ymin+ymax)//2
-    px = img[ymed, xmed]
+    try:
+        px = img[ymed, xmed]
+    except IndexError:
+        return []
     #print (px)
     #print (xmed)
     #print (ymed)
@@ -85,37 +88,13 @@ def processInputImage(inDict):
     obj = s3.get_object(Bucket=bucket, Key=key)
     print ('obj', obj)
     print('starting dumb download')
-    print('key', key, 'bucket', bucket)
-    basicURL = (('https://'+bucket+'.s3.amazonaws.com/'+str(key)))
-    enhanced = basicURL+' -i MakeupMyMind.pem'
-    print (enhanced)
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36"}
-    enhancedReq = urllib.request.Request(enhanced, headers=headers)
-    with urllib.request.urlopen(enhancedReq) as response:
-        html = response.read()
-    print (html)
-    print('finished dumb download')
-    print (s3.download_file(bucket, key, 'tmpImg.jpg'))
-    print(open('tmpImg.jpg').read())
-    print ('got here')
-    transfer = S3Transfer(s3)
-    response = None
-    try:
-        response = transfer.download_file(str(bucket), str(key), '/tmp/tmpImg.jpg')
-        
-        print("CONTENT TYPE: " + response['ContentType'])
-        print(response)
-    except Exception as e:
-        print(e)
-        print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
-        if e.response['Error']['Code'] == '404':
-            return ['0', '0', '0']
 
-        raise e
-
+    awsReq = 'aws s3 cp s3://'+str(bucket)+'/'+str(key)+' tmpImg.jpg'
+    #subprocess.Popen(awsReq)
+    os.system(awsReq)
     
     #now that we have a response, pull the image data from jpeg and load it for ML
-    image = '/tmp/tmpImg.jpg' 
+    image = 'tmpImg.jpg' 
 
     #run the ML algorithms
     attributes = skinToneFind(image)
@@ -126,11 +105,9 @@ def processInputImage(inDict):
     #return classified attributes with (r,g,b)
     return attributes
 
-def predict(attributes):
+def predict(attributes, acne, active):
     #store all of the attributes locally
     faceColorRGB = attributes[0]
-    acne = attributes[1]
-    active = attributes[2]
 
     #find nearest neighbor using a .csv file functioning as a classification database
     output = RGB_distance(faceColorRGB, acne, active)
@@ -161,26 +138,39 @@ if __name__ == '__main__':
             raise    
     attributes = processInputImage(inData)
    
+    doClassify = True
+    if attributes == []:
+        print ('face not identified')
+        doClassify = False
     #TODO
     #push the filename, attributes, acne, active to the MySQL database on the image line 
 
-    #print out the attributes we've found by processing the input message
-    for i in attributes:
-        print (attributes)
+    name = ""
+    website = ""
+    if doClassify:
+        #print out the attributes we've found by processing the input message
+        for i in attributes:
+            print (attributes)
 
-    #make a prediction based on the input attributes
-    (name, website) = predict(attributes, inData['acne'], inData['active'])
+        #make a prediction based on the input attributes
+        (name, website) = predict(attributes, inData['acne'], inData['active'])
     
     #TODO
     #pull the MySQL database line which contains the file name (now .text)
     
-    #TODO FINISH
     #Create a new file with that name and the name, website data
     filename = str(inData['key'])
     filename = filename[:-4]
     filename = filename + '.txt'
-    formattedOut = 'Product Name: '+str(name)+' Website: '+str(website)
-    open(filename).write(formattedOut)
+    if name == "":
+        formattedOut = "Failed to identify face in image"
+    else:
+        formattedOut = 'Product Name: '+str(name)+' Website: '+str(website)
+    
+    with open(filename) as f:
+        f.write(formattedOut)
+    os.remove(filename)
+
     #push that new file to the S3 data dump
     s3 = boto3.client('s3')
     s3.upload_file(str(inData['key']), 'make-up-your-mind-response', str(inData['key']))
