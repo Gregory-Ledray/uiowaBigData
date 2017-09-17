@@ -2,7 +2,7 @@ from __future__ import print_function
 import receiveSQSMessage
 import sendSQSMessage
 import numpy as np
-import opencv3 as cv2
+import opencv
 import scipy.spatial.distance as distance
 from xlrd import open_workbook
 import os
