@@ -167,10 +167,10 @@ if __name__ == '__main__':
     else:
         formattedOut = 'Product Name: '+str(name)+' Website: '+str(website)
     
-    with open(filename) as f:
+    with open(filename, 'w+') as f:
         f.write(formattedOut)
-    os.remove(filename)
 
     #push that new file to the S3 data dump
     s3 = boto3.client('s3')
-    s3.upload_file(str(inData['key']), 'make-up-your-mind-response', str(inData['key']))
+    s3.upload_file(filename, 'make-up-your-mind-response', str(inData['key']))
+    os.remove(filename)
