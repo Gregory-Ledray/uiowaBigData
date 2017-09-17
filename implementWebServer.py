@@ -123,8 +123,16 @@ if __name__ == '__main__':
     inQ = receiveSQSMessage.receiveLoop()
     print (inQ)
     info = inQ.split('.')
+    info2 = []
     inData={}
+    c=0
     for entry in info:
+        info2.append(entry)
+        if entry == 'jpg':
+            info2[c-1]+='.jpg'
+        else
+            c+=1
+    for entry in info2:
         dictReadyEntry = entry.split('=')
         inData[dictReadyEntry[0]] = dictReadyEntry[1]
     
