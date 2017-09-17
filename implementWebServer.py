@@ -2,10 +2,9 @@ from __future__ import print_function
 import receiveSQSMessage
 import sendSQSMessage
 import numpy as np
-import cv2
 import scipy.spatial.distance as distance
 from xlrd import open_workbook
-import os
+import os, boto3, cv2
 
 
 def skinToneFind(selfie):
@@ -89,6 +88,8 @@ def processInputImage(inDict):
         print("CONTENT TYPE: " + response['ContentType'])
         print(response)
     except Exception as e:
+        if e.response['Error']['Code'] == '404':
+            return ['0', '0', '0']
         print(e)
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
         raise e
@@ -127,11 +128,11 @@ if __name__ == '__main__':
     inData={}
     c=0
     for entry in info:
-        info2.append(entry)
         if entry == 'jpg':
             info2[c-1]+='.jpg'
         else:
             c+=1
+            info2.append(entry)
     for entry in info2:
         dictReadyEntry = entry.split('=')
         try:
@@ -139,7 +140,7 @@ if __name__ == '__main__':
         except:
             print (entry, dictReadyEntry)
             raise    
-    attributes = processInputMessage(inData)
+    attributes = processInputImage(inData)
    
     #TODO
     #push the filename, attributes, acne, active to the MySQL database on the image line 
