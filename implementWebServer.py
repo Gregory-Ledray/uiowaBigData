@@ -1,10 +1,6 @@
 import receiveSQSMessage
 import sendSQSMessage
 
-def mlAlgo(image):
-    return [('r', 'g', 'b')]
-
-
 def processInputImage(inDict):
     #to process the image, first retrieve the image
     bucket = inDict['bucket']
@@ -21,21 +17,25 @@ def processInputImage(inDict):
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
         raise e
 
+    #TODO
     #now that we have a response, pull the image data from jpeg and load it for ML
     image = ''
 
+    #TODO
     #run the ML algorithms
     attributes = mlAlgo(image)
 
-    #return classified attributes
+    #return classified attributes with (r,g,b)
     return attributes
 
 def predict(attributes):
     #store all of the attributes locally
     faceColorRGB = attributes[0]
-
+    acne = attributes[1]
+    #TODO
     #poll the database for all classified solutions
 
+    #TODO
     #find the nearest neighbor
 
     #return the best makeup name and website/link
@@ -52,14 +52,17 @@ if __name__ == '__main__':
         inData[dictReadyEntry[0]] = dictReadyEntry[1]
     
     attributes = processInputMessage(inData)
-    
+   
+    #TODO
+    #push the filename, attributes, acne, active to the MySQL database on the image line 
+
     #print out the attributes we've found by processing the input message
     for i in attributes:
         print attributes
 
     #make a prediction based on the input attributes
-    predict(attributes)
-
-    outMessage='testOutMessage'
-    if not sendSQSMessage.sendLoop(outMessage):
-        print ('failed to send a message')
+    (name, website) = predict(attributes, inData['acne'], inData['active'])
+    
+    #pull the MySQL database line which contains the file name (now .text)
+    #Create a new file with that name and the name, website data
+    #push that new file to the S3 data dump
