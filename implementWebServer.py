@@ -1,6 +1,32 @@
 import receiveSQSMessage
 import sendSQSMessage
+def RGB_distance(skin, activeness, acne):
+    if activeness == 0:
+        if acne == 0:
+            wb= open_workbook('fenty.xls')
+        else:
+            wb = open_workbook('acne.xls')
+    if activeness == 1:
+        if acne == 0:
+            wb = open_workbook('active.xls')
+        else:
+            wb = open_workbook('hourglass.xls')
+    sheet = wb.sheet_by_name('Sheet1')
+    makeup_rgb = [[sheet.cell_value(r, c) for c in range(0,3)] for r in range(1,sheet.nrows)]
+    test=[]
+    holder=1000000
+    y=-1
+    for x in range(0,sheet.nrows-1):
+        d= distance.euclidean(skin,makeup_rgb[x])
+        test.append(distance.euclidean(skin,makeup_rgb[x]))
+        if d<holder:
+            holder=d
+            y=x
 
+    r=y+1
+    makeup = sheet.cell_value(r,3)
+    website = sheet.cell_value(r,4)
+    return (makeup, website)
 def processInputImage(inDict):
     #to process the image, first retrieve the image
     bucket = inDict['bucket']
@@ -19,14 +45,13 @@ def processInputImage(inDict):
 
     
     #now that we have a response, pull the image data from jpeg and load it for ML
-    image = inDict['key'] 
-
-    #pull the image into RAM
+    image = 'tmpImg.jpg' 
 
     #run the ML algorithms
     attributes = skinToneFind(image)
 
     #delte the image from RAM
+    
 
     #return classified attributes with (r,g,b)
     return attributes
