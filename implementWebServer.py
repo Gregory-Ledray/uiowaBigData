@@ -61,9 +61,9 @@ def RGB_distance(skin, activeness, acne):
             wb = open_workbook('acne.xls')
     if activeness == 1:
         if acne == 0:
-            wb = open_workbook('active.xls')
-        else:
             wb = open_workbook('hourglass.xls')
+        else:
+            wb = open_workbook('acne.xls')
     sheet = wb.sheet_by_name('Sheet1')
     makeup_rgb = [[sheet.cell_value(r, c) for c in range(0,3)] for r in range(1,sheet.nrows)]
     test=[]
@@ -115,8 +115,7 @@ def predict(attributes, acne, active):
     #return the best makeup name and website/link
     return output
 
-#I assume the input message is of format key=value.key=value.key=value
-if __name__ == '__main__':
+def runAWS():
     inQ = receiveSQSMessage.receiveLoop()
     print (inQ)
     info = inQ.split('.')
@@ -148,12 +147,13 @@ if __name__ == '__main__':
     name = ""
     website = ""
     if doClassify:
+        print ('classifying')
         #print out the attributes we've found by processing the input message
         for i in attributes:
             print (attributes)
 
         #make a prediction based on the input attributes
-        (name, website) = predict(attributes, inData['acne'], inData['active'])
+        (name, website) = predict(attributes, int(inData['acne']), int(inData['active']))
     
     #TODO
     #pull the MySQL database line which contains the file name (now .text)
@@ -172,5 +172,11 @@ if __name__ == '__main__':
 
     #push that new file to the S3 data dump
     s3 = boto3.client('s3')
-    s3.upload_file(filename, 'make-up-your-mind-response', str(inData['key']))
+    s3.upload_file(filename, 'make-up-your-mind-response', 'tmp/'+filename)
     os.remove(filename)
+
+
+#I assume the input message is of format key=value.key=value.key=value
+if __name__ == '__main__':
+    while True:
+        runAWS()
