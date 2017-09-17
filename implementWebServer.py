@@ -1,5 +1,53 @@
 import receiveSQSMessage
 import sendSQSMessage
+import numpy as np
+import cv2
+import scipy.spatial.distance as distance
+from xlrd import open_workbook
+import os
+
+def skinToneFind(selfie):
+    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+
+    #outimg = cv2.imread('messi.jpg', cv2.IMREAD_COLOR)
+    img = cv2.imread(selfie)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    xmin = 10000
+    ymin = 10000
+    ymax = 0
+    xmax = 0
+
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    for (x,y,w,h) in faces:
+        cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
+        if x < xmin:
+            xmin = x
+        if y < ymin:
+            ymin = y
+        if (x+w) > xmax:
+            xmax = (x+w)
+        if (y+h) > ymax:
+            ymax = (y+h)
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = img[y:y+h, x:x+w]
+        eyes = eye_cascade.detectMultiScale(roi_gray)
+        for (ex,ey,ew,eh) in eyes:
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+    xmed = (xmin+xmax)//2
+    ymed = (ymin+ymax)//2
+    px = img[ymed, xmed]
+    #print (px)
+    #print (xmed)
+    #print (ymed)
+    pxlist = px.tolist()
+    pxlist.reverse()
+    cv2.imshow('img',img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    #print (pxlist)
+    return pxlist
+
 def RGB_distance(skin, activeness, acne):
     if activeness == 0:
         if acne == 0:
@@ -50,8 +98,8 @@ def processInputImage(inDict):
     #run the ML algorithms
     attributes = skinToneFind(image)
 
-    #delte the image from RAM
-    
+    #delete the image from RAM
+    os.remove('tmpImg.jpg')
 
     #return classified attributes with (r,g,b)
     return attributes
