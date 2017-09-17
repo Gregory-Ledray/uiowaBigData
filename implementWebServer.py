@@ -5,10 +5,10 @@ def processInputImage(inDict):
     #to process the image, first retrieve the image
     bucket = inDict['bucket']
     key = inDict['key']
-    s3 = boto3.client('s3', region_name='us-east-2')
+    s3 = boto3.resource('s3', region_name='us-east-2')
     response = None
     try:
-        response = s3.get_object(Bucket=bucket, Key=key)
+        response = s3.Bucket(bucket).download_file(key, 'tmpImg.jpg')
         
         print("CONTENT TYPE: " + response['ContentType'])
         print(response)
@@ -17,13 +17,16 @@ def processInputImage(inDict):
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
         raise e
 
-    #TODO
+    
     #now that we have a response, pull the image data from jpeg and load it for ML
-    image = ''
+    image = inDict['key'] 
 
-    #TODO
+    #pull the image into RAM
+
     #run the ML algorithms
-    attributes = mlAlgo(image)
+    attributes = skinToneFind(image)
+
+    #delte the image from RAM
 
     #return classified attributes with (r,g,b)
     return attributes
@@ -32,14 +35,13 @@ def predict(attributes):
     #store all of the attributes locally
     faceColorRGB = attributes[0]
     acne = attributes[1]
-    #TODO
-    #poll the database for all classified solutions
+    active = attributes[2]
 
-    #TODO
-    #find the nearest neighbor
+    #find nearest neighbor using a .csv file functioning as a classification database
+    output = RGB_distance(faceColorRGB, acne, active)
 
     #return the best makeup name and website/link
-    return ('name', 'website')
+    return output
 
 #I assume the input message is of format key=value.key=value.key=value
 if __name__ == '__main__':
