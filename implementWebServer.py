@@ -2,7 +2,7 @@ from __future__ import print_function
 import receiveSQSMessage
 import sendSQSMessage
 import numpy as np
-import opencv
+import cv2
 import scipy.spatial.distance as distance
 from xlrd import open_workbook
 import os
@@ -44,7 +44,7 @@ def skinToneFind(selfie):
     #print (ymed)
     pxlist = px.tolist()
     pxlist.reverse()
-    cv2.imshow('img',img)
+    #cv2.imshow('img',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     #print (pxlist)
@@ -130,12 +130,15 @@ if __name__ == '__main__':
         info2.append(entry)
         if entry == 'jpg':
             info2[c-1]+='.jpg'
-        else
+        else:
             c+=1
     for entry in info2:
         dictReadyEntry = entry.split('=')
-        inData[dictReadyEntry[0]] = dictReadyEntry[1]
-    
+        try:
+            inData[dictReadyEntry[0]] = dictReadyEntry[1]
+        except:
+            print (entry, dictReadyEntry)
+            raise    
     attributes = processInputMessage(inData)
    
     #TODO
