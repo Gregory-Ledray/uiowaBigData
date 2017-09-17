@@ -1,11 +1,12 @@
 from __future__ import print_function
 import receiveSQSMessage
 import sendSQSMessage
+from extraLib import *
 import numpy as np
 import scipy.spatial.distance as distance
 from xlrd import open_workbook
-import os, boto3, cv2
-
+import os, boto3, cv2, urllib.request
+import requests
 
 def skinToneFind(selfie):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -80,23 +81,41 @@ def processInputImage(inDict):
     #to process the image, first retrieve the image
     bucket = inDict['bucket']
     key = inDict['key']
-    s3 = boto3.resource('s3', region_name='us-east-2')
+    s3 = boto3.client('s3')
+    obj = s3.get_object(Bucket=bucket, Key=key)
+    print ('obj', obj)
+    print('starting dumb download')
+    print('key', key, 'bucket', bucket)
+    basicURL = (('https://'+bucket+'.s3.amazonaws.com/'+str(key)))
+    enhanced = basicURL+' -i MakeupMyMind.pem'
+    print (enhanced)
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36"}
+    enhancedReq = urllib.request.Request(enhanced, headers=headers)
+    with urllib.request.urlopen(enhancedReq) as response:
+        html = response.read()
+    print (html)
+    print('finished dumb download')
+    print (s3.download_file(bucket, key, 'tmpImg.jpg'))
+    print(open('tmpImg.jpg').read())
+    print ('got here')
+    transfer = S3Transfer(s3)
     response = None
     try:
-        response = s3.Bucket(bucket).download_file(key, 'tmpImg.jpg')
+        response = transfer.download_file(str(bucket), str(key), '/tmp/tmpImg.jpg')
         
         print("CONTENT TYPE: " + response['ContentType'])
         print(response)
     except Exception as e:
-        if e.response['Error']['Code'] == '404':
-            return ['0', '0', '0']
         print(e)
         print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        if e.response['Error']['Code'] == '404':
+            return ['0', '0', '0']
+
         raise e
 
     
     #now that we have a response, pull the image data from jpeg and load it for ML
-    image = 'tmpImg.jpg' 
+    image = '/tmp/tmpImg.jpg' 
 
     #run the ML algorithms
     attributes = skinToneFind(image)
@@ -152,6 +171,16 @@ if __name__ == '__main__':
     #make a prediction based on the input attributes
     (name, website) = predict(attributes, inData['acne'], inData['active'])
     
+    #TODO
     #pull the MySQL database line which contains the file name (now .text)
+    
+    #TODO FINISH
     #Create a new file with that name and the name, website data
+    filename = str(inData['key'])
+    filename = filename[:-4]
+    filename = filename + '.txt'
+    formattedOut = 'Product Name: '+str(name)+' Website: '+str(website)
+    open(filename).write(formattedOut)
     #push that new file to the S3 data dump
+    s3 = boto3.client('s3')
+    s3.upload_file(str(inData['key']), 'make-up-your-mind-response', str(inData['key']))
